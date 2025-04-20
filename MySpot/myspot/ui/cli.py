@@ -116,14 +116,15 @@ class CLIPlayer:
             logger.info(f"Playing: {Path(current).name}")
     
     def _status_display(self):
-        """Update the status display in a separate thread."""
-        while self.running:
-                # Auto-advance to next track when current one finishes
 
+        while self.polling:
+            # Verifica se há uma faixa carregada mas não está tocando E não está pausada
+            if (self.player.current_track and not self.player.is_playing()):
+                if self.player.is_paused == "false":
+                    self.next_track()
             
-            # Display current status every second
-            self._print_status()
-            time.sleep(1)
+            import time
+            time.sleep(0.5)
     
     def _print_status(self):
         """Print the current playback status."""
