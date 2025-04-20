@@ -9,9 +9,9 @@ import logging
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import MySpot components
-from myspot.audio.player import AudioPlayer
-from myspot.playlist.playlist import PlaylistManager
-from myspot.config.config import ConfigManager
+from ..audio.player import AudioPlayer
+from ..playlist.playlist import PlaylistManager
+from ..config.config import ConfigManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
