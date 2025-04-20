@@ -5,6 +5,9 @@ import threading
 import tkinter as tk
 from tkinter import ttk, filedialog
 from pathlib import Path
+import pygame
+from PIL import Image, ImageTk
+import io
 
 from ..audio.player import AudioPlayer
 from ..playlist.playlist import PlaylistManager
@@ -12,8 +15,59 @@ from ..config.config import ConfigManager
 
 logger = logging.getLogger(__name__)
 
+class ModernUI:
+    """Custom UI elements with modern styling."""
+    
+    @staticmethod
+    def create_button(parent, text, command, size=12, width=None, hover_color="#333333"):
+        btn = tk.Button(
+            parent,
+            text=text,
+            font=("Segoe UI", size),
+            bg="#3D3D3D",
+            fg="#FFFFFF",
+            activebackground="#444444",
+            activeforeground="#FFFFFF",
+            borderwidth=0,
+            padx=10,
+            pady=5,
+            width=width,
+            cursor="hand2",
+            command=command
+        )
+        
+        btn.bind("<Enter>", lambda e: btn.config(background=hover_color))
+        btn.bind("<Leave>", lambda e: btn.config(background="#3D3D3D"))
+        
+        return btn
+    
+    @staticmethod
+    def setup_styles():
+        """Set up ttk styles."""
+        style = ttk.Style()
+        
+        # Configure the progress bar
+        style.configure(
+            "MySpot.Horizontal.TProgressbar",
+            troughcolor="#222222",
+            background="#1DB954",
+            thickness=8,
+            borderwidth=0
+        )
+        
+        # Configure volume slider
+        style.configure(
+            "MySpot.Horizontal.TScale",
+            background="#1E1E1E",
+            troughcolor="#333333",
+            sliderwidth=15,
+            sliderlength=15
+        )
+        
+        return style
+
 class GUIPlayer:
-    """Graphical user interface for MySpot audio player."""
+    """Modern graphical user interface for MySpot audio player."""
     
     def __init__(self, root=None):
         self.config = ConfigManager()
@@ -23,12 +77,21 @@ class GUIPlayer:
         # Create root window if not provided
         self.root = root or tk.Tk()
         self.root.title("MySpot Player")
-        self.root.geometry("500x350")
+        self.root.geometry("550x400")
+        self.root.minsize(500, 350)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         
-        # Set theme
-        self.theme = self.config.get('theme', 'dark')
-        self._apply_theme()
+        # Set dark theme
+        self.bg_color = "#1E1E1E"
+        self.fg_color = "#E6E6E6"
+        self.accent_color = "#1DB954"  # Spotify green
+        self.button_bg = "#3D3D3D"
+        self.secondary_color = "#333333"
+        
+        self.root.configure(bg=self.bg_color)
+        
+        # Set up ttk styles
+        self.style = ModernUI.setup_styles()
         
         # Create UI elements
         self._create_ui()
@@ -37,117 +100,134 @@ class GUIPlayer:
         self.polling = True
         self.poll_thread = threading.Thread(target=self._poll_playback_status, daemon=True)
         self.poll_thread.start()
-        
         # Load initial directory if needed
         if not self.playlist.tracks:
             self.open_directory()
-    
-    def _apply_theme(self):
-        """Apply the selected theme to the UI."""
-        if self.theme == 'dark':
-            self.bg_color = "#222222"
-            self.fg_color = "#EEEEEE"
-            self.accent_color = "#1DB954"  # Spotify green
-            self.button_bg = "#333333"
-        else:
-            self.bg_color = "#FFFFFF"
-            self.fg_color = "#222222"
-            self.accent_color = "#1DB954"  # Spotify green
-            self.button_bg = "#EEEEEE"
         
-        self.root.configure(bg=self.bg_color)
-    
     def _create_ui(self):
         """Create the user interface elements."""
-        # Main frame
+        # Main frame with padding
         main_frame = tk.Frame(self.root, bg=self.bg_color)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
+        
+        # Header with logo
+        header_frame = tk.Frame(main_frame, bg=self.bg_color)
+        header_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        title_label = tk.Label(
+            header_frame,
+            text="MySpot",
+            bg=self.bg_color,
+            fg=self.accent_color,
+            font=("Segoe UI", 20, "bold")
+        )
+        title_label.pack(side=tk.LEFT)
+        
+        # Folder button in header
+        folder_btn = ModernUI.create_button(
+            header_frame,
+            text="📁",
+            command=self.open_directory,
+            size=14
+        )
+        folder_btn.pack(side=tk.RIGHT)
+        
+        # Track container
+        track_frame = tk.Frame(main_frame, bg=self.secondary_color, padx=15, pady=15)
+        track_frame.pack(fill=tk.X, pady=10)
+        
+        # Now playing label
+        now_playing = tk.Label(
+            track_frame,
+            text="NOW PLAYING",
+            bg=self.secondary_color,
+            fg=self.accent_color,
+            font=("Segoe UI", 9),
+            anchor=tk.W
+        )
+        now_playing.pack(fill=tk.X)
         
         # Track info
         self.track_var = tk.StringVar(value="No track playing")
         self.track_label = tk.Label(
-            main_frame, 
+            track_frame, 
             textvariable=self.track_var,
-            bg=self.bg_color,
+            bg=self.secondary_color,
             fg=self.fg_color,
-            font=("Arial", 12, "bold"),
-            wraplength=460
+            font=("Segoe UI", 12, "bold"),
+            anchor=tk.W,
+            wraplength=490
         )
-        self.track_label.pack(pady=(10, 5))
+        self.track_label.pack(fill=tk.X, pady=(5, 10))
         
         self.track_info_var = tk.StringVar(value="")
         self.track_info_label = tk.Label(
-            main_frame, 
+            track_frame, 
             textvariable=self.track_info_var,
-            bg=self.bg_color,
-            fg=self.fg_color,
-            font=("Arial", 10)
+            bg=self.secondary_color,
+            fg="#AAAAAA",
+            font=("Segoe UI", 9),
+            anchor=tk.W
         )
-        self.track_info_label.pack(pady=(0, 10))
+        self.track_info_label.pack(fill=tk.X)
         
         # Progress bar
-        self.progress_frame = tk.Frame(main_frame, bg=self.bg_color)
-        self.progress_frame.pack(fill=tk.X, pady=10)
+        progress_frame = tk.Frame(main_frame, bg=self.bg_color)
+        progress_frame.pack(fill=tk.X, pady=(15, 5))
         
         self.progress_bar = ttk.Progressbar(
-            self.progress_frame,
+            progress_frame,
             orient=tk.HORIZONTAL,
-            length=480,
+            style="MySpot.Horizontal.TProgressbar",
+            length=100,
             mode="determinate"
         )
         self.progress_bar.pack(fill=tk.X)
         
         # Control buttons
-        button_frame = tk.Frame(main_frame, bg=self.bg_color)
-        button_frame.pack(pady=10)
+        control_frame = tk.Frame(main_frame, bg=self.bg_color)
+        control_frame.pack(pady=15)
         
         # Previous button
-        self.prev_button = tk.Button(
-            button_frame, 
-            text="⏮️",
-            font=("Arial", 16),
+        self.prev_button = ModernUI.create_button(
+            control_frame, 
+            text="⏮",
             command=self.previous_track,
-            bg=self.button_bg,
-            fg=self.fg_color,
+            size=16
         )
-        self.prev_button.pack(side=tk.LEFT, padx=5)
+        self.prev_button.pack(side=tk.LEFT, padx=10)
         
         # Play/Pause button
-        self.play_button = tk.Button(
-            button_frame, 
-            text="▶️",
-            font=("Arial", 16),
+        self.play_button = ModernUI.create_button(
+            control_frame, 
+            text="▶",
             command=self.toggle_play_pause,
-            bg=self.button_bg,
-            fg=self.fg_color,
+            size=22,
+            hover_color="#2D2D2D"
         )
-        self.play_button.pack(side=tk.LEFT, padx=5)
+        self.play_button.pack(side=tk.LEFT, padx=15)
         
         # Next button
-        self.next_button = tk.Button(
-            button_frame, 
-            text="⏭️",
-            font=("Arial", 16),
+        self.next_button = ModernUI.create_button(
+            control_frame, 
+            text="⏭",
             command=self.next_track,
-            bg=self.button_bg,
-            fg=self.fg_color,
+            size=16
         )
-        self.next_button.pack(side=tk.LEFT, padx=5)
+        self.next_button.pack(side=tk.LEFT, padx=10)
         
-        # Volume control
+        # Volume control frame at bottom
         volume_frame = tk.Frame(main_frame, bg=self.bg_color)
-        volume_frame.pack(pady=10, fill=tk.X)
+        volume_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 10))
         
         # Mute button
-        self.mute_button = tk.Button(
+        self.mute_button = ModernUI.create_button(
             volume_frame, 
             text="🔊",
-            font=("Arial", 14),
             command=self.toggle_mute,
-            bg=self.button_bg,
-            fg=self.fg_color,
+            size=12
         )
-        self.mute_button.pack(side=tk.LEFT, padx=(0, 5))
+        self.mute_button.pack(side=tk.LEFT, padx=(0, 10))
         
         # Volume slider
         self.volume_var = tk.DoubleVar(value=self.player.get_volume())
@@ -157,12 +237,34 @@ class GUIPlayer:
             to=1.0,
             orient=tk.HORIZONTAL,
             variable=self.volume_var,
-            command=self.set_volume
+            command=self.set_volume,
+            style="MySpot.Horizontal.TScale"
         )
-        self.volume_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.volume_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
-        # Menu
-        self._create_menu()
+        # Volume percentage label
+        self.volume_label = tk.Label(
+            volume_frame,
+            text=f"{int(self.volume_var.get() * 100)}%",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Segoe UI", 9)
+        )
+        self.volume_label.pack(side=tk.LEFT, padx=5)
+        
+        # Status bar
+        status_frame = tk.Frame(self.root, bg="#111111", height=25)
+        status_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        self.status_label = tk.Label(
+            status_frame,
+            text="Ready",
+            bg="#111111",
+            fg="#888888",
+            font=("Segoe UI", 8),
+            anchor=tk.W
+        )
+        self.status_label.pack(side=tk.LEFT, padx=10)
         
         # Keyboard shortcuts
         self.root.bind("<space>", lambda e: self.toggle_play_pause())
@@ -172,25 +274,7 @@ class GUIPlayer:
         self.root.bind("q", lambda e: self.on_close())
         self.root.bind("<plus>", lambda e: self.increase_volume())
         self.root.bind("<minus>", lambda e: self.decrease_volume())
-    
-    def _create_menu(self):
-        """Create the application menu."""
-        menubar = tk.Menu(self.root)
-        
-        # File menu
-        file_menu = tk.Menu(menubar, tearoff=0)
-        file_menu.add_command(label="Open Music Folder", command=self.open_directory)
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.on_close)
-        menubar.add_cascade(label="File", menu=file_menu)
-        
-        # Theme menu
-        theme_menu = tk.Menu(menubar, tearoff=0)
-        theme_menu.add_command(label="Light", command=lambda: self.change_theme('light'))
-        theme_menu.add_command(label="Dark", command=lambda: self.change_theme('dark'))
-        menubar.add_cascade(label="Theme", menu=theme_menu)
-        
-        self.root.config(menu=menubar)
+        self.root.bind("<o>", lambda e: self.open_directory())
     
     def open_directory(self):
         """Open a directory dialog to select music folder."""
@@ -200,10 +284,16 @@ class GUIPlayer:
         )
         
         if directory:
+            self.status_label.config(text=f"Loading music from {directory}...")
+            self.root.update()
+            
             if self.playlist.scan_directory(directory):
                 self.config.set('music_directory', directory)
                 self._play_current_track()
                 self.update_track_info()
+                self.status_label.config(text=f"Loaded {self.playlist.total_tracks()} tracks")
+            else:
+                self.status_label.config(text="No music files found in selected directory")
     
     def _play_current_track(self):
         """Play the current track from the playlist."""
@@ -211,6 +301,7 @@ class GUIPlayer:
         if current:
             self.player.play(current)
             self.update_ui()
+            self.status_label.config(text=f"Playing: {Path(current).name}")
     
     def toggle_play_pause(self):
         """Toggle play/pause status."""
@@ -223,9 +314,11 @@ class GUIPlayer:
         
         # Update play button text
         if status == "playing":
-            self.play_button.config(text="⏸️")
+            self.play_button.config(text="⏸")
+            self.status_label.config(text=f"Playing: {Path(current).name}")
         else:
-            self.play_button.config(text="▶️")
+            self.play_button.config(text="▶")
+            self.status_label.config(text=f"Paused: {Path(current).name}")
     
     def next_track(self):
         """Play the next track."""
@@ -233,7 +326,7 @@ class GUIPlayer:
         if next_track:
             self.player.play(next_track)
             self.update_ui()
-            
+            self.status_label.config(text=f"Playing: {Path(next_track).name}")
     
     def previous_track(self):
         """Play the previous track."""
@@ -241,6 +334,7 @@ class GUIPlayer:
         if prev_track:
             self.player.play(prev_track)
             self.update_ui()
+            self.status_label.config(text=f"Playing: {Path(prev_track).name}")
     
     def toggle_mute(self):
         """Toggle mute status."""
@@ -257,6 +351,7 @@ class GUIPlayer:
         try:
             volume = float(value)
             self.player.set_volume(volume)
+            self.volume_label.config(text=f"{int(volume * 100)}%")
             self.config.set('volume', volume)
         except ValueError:
             pass
@@ -265,12 +360,14 @@ class GUIPlayer:
         """Increase volume by 5%."""
         new_vol = self.player.increase_volume(0.05)
         self.volume_var.set(new_vol)
+        self.volume_label.config(text=f"{int(new_vol * 100)}%")
         self.config.set('volume', new_vol)
     
     def decrease_volume(self):
         """Decrease volume by 5%."""
         new_vol = self.player.decrease_volume(0.05)
         self.volume_var.set(new_vol)
+        self.volume_label.config(text=f"{int(new_vol * 100)}%")
         self.config.set('volume', new_vol)
     
     def update_track_info(self):
@@ -280,6 +377,7 @@ class GUIPlayer:
         if not track_info:
             self.track_var.set("No track playing")
             self.track_info_var.set("")
+            self.progress_bar["value"] = 0
             return
         
         # Update track name
@@ -295,9 +393,9 @@ class GUIPlayer:
         
         # Update play/pause button
         if self.player.is_playing():
-            self.play_button.config(text="⏸️")
+            self.play_button.config(text="⏸")
         else:
-            self.play_button.config(text="▶️")
+            self.play_button.config(text="▶")
         
         # Update mute button
         if self.player.is_muted():
@@ -305,29 +403,21 @@ class GUIPlayer:
         else:
             self.mute_button.config(text="🔊")
         
-        # Update volume slider
+        # Update volume slider and label
         self.volume_var.set(self.player.get_volume())
-    
-    def change_theme(self, theme):
-        """Change the UI theme."""
-        self.theme = theme
-        self.config.set('theme', theme)
-        self._apply_theme()
-        
-        # Update UI elements
-        self.track_label.config(bg=self.bg_color, fg=self.fg_color)
-        self.track_info_label.config(bg=self.bg_color, fg=self.fg_color)
-        self.progress_frame.config(bg=self.bg_color)
-        self.prev_button.config(bg=self.button_bg, fg=self.fg_color)
-        self.play_button.config(bg=self.button_bg, fg=self.fg_color)
-        self.next_button.config(bg=self.button_bg, fg=self.fg_color)
-        self.mute_button.config(bg=self.button_bg, fg=self.fg_color)
+        self.volume_label.config(text=f"{int(self.player.get_volume() * 100)}%")
     
     def _poll_playback_status(self):
+        """Poll for playback status changes."""
         import time
-        while True:
-            time.sleep(0.5)     
+        while self.polling:
+            # Check if a track is loaded but not playing and not paused
+            if self.player.current_track and not self.player.is_playing() and not self.player.is_paused:
+                # If track has ended, play the next one
+                self.next_track()
+            time.sleep(0.5)
 
+    
     def on_close(self):
         """Handle application close."""
         # Save current state
@@ -351,10 +441,19 @@ class GUIPlayer:
 
 def main():
     """Main entry point for GUI player."""
+    # Setup logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    
+    # Fix for HiDPI displays
+    try:
+        from ctypes import windll
+        windll.shcore.SetProcessDpiAwareness(1)
+    except:
+        pass
+    
     root = tk.Tk()
     app = GUIPlayer(root)
     app.start()
-    
 
 if __name__ == "__main__":
     main()
