@@ -1,0 +1,1 @@
+python -m MySpot.myspot.web.server
