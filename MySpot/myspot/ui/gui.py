@@ -325,6 +325,11 @@ class GUIPlayer:
     def _poll_playback_status(self):
         """Check if the current track has ended and play next if needed."""
         while self.polling:
+            # Verifica se há uma faixa carregada mas não está tocando E não está pausada
+            if (self.player.current_track and not self.player.is_playing()):
+                if self.player.is_paused == "false":
+                    self.next_track()
+            
             import time
             time.sleep(0.5)
     
