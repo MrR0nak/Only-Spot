@@ -36,6 +36,7 @@ class AudioPlayer:
         """Pause current playback."""
         if pygame.mixer.music.get_busy():
             pygame.mixer.music.pause()
+            self.is_paused = True
             logger.info("Playback paused")
             return True
         return False
@@ -45,6 +46,7 @@ class AudioPlayer:
         # Verificamos se a música foi carregada antes de tentar unpause
         try:
             pygame.mixer.music.unpause()
+            self.is_paused = False
             logger.info("Playback resumed")
             return True
         except:
