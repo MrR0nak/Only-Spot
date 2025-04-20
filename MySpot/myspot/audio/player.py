@@ -14,6 +14,7 @@ class AudioPlayer:
         self._muted_volume = 0.0
         self.set_volume(volume)
         self.current_track = None
+        self.is_paused = False
         logger.info("AudioPlayer initialized with volume %.2f", volume)
 
     def play(self, file_path):
