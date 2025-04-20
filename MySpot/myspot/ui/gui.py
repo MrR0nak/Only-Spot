@@ -233,6 +233,7 @@ class GUIPlayer:
         if next_track:
             self.player.play(next_track)
             self.update_ui()
+            
     
     def previous_track(self):
         """Play the previous track."""
@@ -323,16 +324,10 @@ class GUIPlayer:
         self.mute_button.config(bg=self.button_bg, fg=self.fg_color)
     
     def _poll_playback_status(self):
-        """Check if the current track has ended and play next if needed."""
-        while self.polling:
-            # Verifica se há uma faixa carregada mas não está tocando E não está pausada
-            if (self.player.current_track and not self.player.is_playing()):
-                if self.player.is_paused == "false":
-                    self.next_track()
-            
-            import time
-            time.sleep(0.5)
-    
+        import time
+        while True:
+            time.sleep(0.5)     
+
     def on_close(self):
         """Handle application close."""
         # Save current state
@@ -354,13 +349,12 @@ class GUIPlayer:
         """Start the GUI application."""
         self.root.mainloop()
 
-
 def main():
     """Main entry point for GUI player."""
     root = tk.Tk()
     app = GUIPlayer(root)
     app.start()
-
+    
 
 if __name__ == "__main__":
     main()
