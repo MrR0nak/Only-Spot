@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 from pathlib import Path
 import pygame
+import pygetwindow as gw
 
 from ..audio.player import AudioPlayer
 from ..playlist.playlist import PlaylistManager
@@ -57,9 +58,6 @@ class GUIPlayer:
         self.root.geometry("550x400")
         self.root.minsize(500, 350)
         
-        # Remove default title bar
-        self.root.overrideredirect(True)
-        
         # Set dark theme
         self.bg_color = "#1E1E1E"
         self.fg_color = "#E6E6E6"
@@ -86,12 +84,24 @@ class GUIPlayer:
         self.poll_thread = threading.Thread(target=self._poll_playback_status, daemon=True)
         self.poll_thread.start()
         
+        # Make window visible in taskbar
+        self.root.after(100, self._make_window_visible_in_taskbar)
+        
         # Load initial directory if needed
         if not self.playlist.tracks:
             self.open_directory()
         else:
             self.playlist.current_index = 0
             self._play_current_track()
+    
+    def _make_window_visible_in_taskbar(self):
+        try:
+            # Get window by title
+            window = gw.getWindowsWithTitle("MySpot Player")[0]
+            # Make it visible in taskbar
+            window.show()
+        except Exception as e:
+            print(f"Error making window visible in taskbar: {e}")
     
     def _create_custom_title_bar(self):
         # Create title bar frame
@@ -155,21 +165,8 @@ class GUIPlayer:
     
     def _minimize_window(self):
         self.root.update_idletasks()
-        self.root.overrideredirect(False)
         self.root.state('iconic')
-        
-        # Restore overrideredirect when window is back to normal state
-        self.root.bind("<Map>", self._restore_window)
     
-    def _restore_window(self, event):
-        self.root.update_idletasks()
-        self.root.overrideredirect(True)
-        # Unbind temporary handler
-        self.root.unbind("<Map>")
-        # Reapply bindings that might have been lost
-        self.title_bar.bind("<ButtonPress-1>", self._start_window_drag)
-        self.title_bar.bind("<B1-Motion>", self._on_window_drag)
-        
     def _create_ui(self):
         # Main frame with padding
         main_frame = tk.Frame(self.root, bg=self.bg_color)
