@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 class ConfigManager:
     DEFAULT_CONFIG = {
         'music_directory': str(Path.home() / 'Music'),
-        'volume': 0.5,
+        'volume': 1,
         'last_played': None,
         'theme': 'dark'
     }
