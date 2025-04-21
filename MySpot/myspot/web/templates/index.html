@@ -14,9 +14,14 @@
                 <i class="fa-solid fa-music"></i>
                 <h1>MySpot</h1>
             </div>
-            <div class="directory-controls">
-                <button id="directory-btn" class="btn"><i class="fa-solid fa-folder-open"></i> Open</button>
-                <span id="directory-display"></span>
+            <div class="header-controls">
+                <div class="voice-controls">
+                    <button id="voice-btn" class="btn"><i class="fa-solid fa-microphone-slash"></i> Voice</button>
+                </div>
+                <div class="directory-controls">
+                    <button id="directory-btn" class="btn"><i class="fa-solid fa-folder-open"></i> Open</button>
+                    <span id="directory-display"></span>
+                </div>
             </div>
         </div>
 
@@ -60,6 +65,42 @@
             <h2>Select Music Directory</h2>
             <input type="text" id="directory-input" placeholder="Enter path to music directory">
             <button id="confirm-directory" class="btn primary">Load Music</button>
+        </div>
+    </div>
+
+    <div id="voice-help-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Voice Commands</h2>
+            <div class="voice-commands-list">
+                <div class="voice-command-item">
+                    <strong>Tocar / Reproduzir</strong> - Inicia a reprodução
+                </div>
+                <div class="voice-command-item">
+                    <strong>Pausar / Parar</strong> - Pausa a reprodução
+                </div>
+                <div class="voice-command-item">
+                    <strong>Continuar</strong> - Continua a reprodução
+                </div>
+                <div class="voice-command-item">
+                    <strong>Próximo / Próxima</strong> - Próxima faixa
+                </div>
+                <div class="voice-command-item">
+                    <strong>Anterior / Voltar</strong> - Faixa anterior
+                </div>
+                <div class="voice-command-item">
+                    <strong>Volume Alto / Aumentar Volume</strong> - Aumenta o volume
+                </div>
+                <div class="voice-command-item">
+                    <strong>Volume Baixo / Diminuir Volume</strong> - Diminui o volume
+                </div>
+                <div class="voice-command-item">
+                    <strong>Silenciar</strong> - Ativa/desativa o som
+                </div>
+                <div class="voice-command-item">
+                    <strong>Embaralhar / Misturar</strong> - Embaralha a playlist
+                </div>
+            </div>
         </div>
     </div>
 
